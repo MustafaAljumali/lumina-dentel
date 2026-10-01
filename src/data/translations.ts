@@ -318,7 +318,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       aacd: 'AACD Cosmetic Dentistry',
       invisalign: 'Invisalign® Diamond Provider',
       copyright: '© 2026 LUMINA Dental Atelier. HIPAA & OSHA Compliant.',
-      staffPortal: 'Staff Portal (PIN 1234)',
+      staffPortal: 'Director Portal',
       backToTop: 'Back to top ↑',
     },
     staffModal: {
@@ -539,7 +539,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       aacd: 'الأكاديمية الأمريكية لطب الأسنان التجميلي (AACD)',
       invisalign: 'مزود ماسي معتمد لإنفزلاين®',
       copyright: '© 2026 عيادة لومينا لطب وتجميل الأسنان. متوافق مع معايير HIPAA وOSHA.',
-      staffPortal: 'بوابة الطاقم الطبي (PIN 1234)',
+      staffPortal: 'بوابة الإدارة',
       backToTop: 'العودة للأعلى ↑',
     },
     staffModal: {

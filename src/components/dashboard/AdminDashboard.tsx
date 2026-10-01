@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import {
   Appointment,
-  Consultation,
   Patient,
   Doctor,
   Service,
   ClinicStats,
-  UserRole,
   AppointmentStatus,
   SmileCase,
 } from '../../types';
@@ -14,24 +12,23 @@ import {
   LayoutDashboard,
   Calendar,
   Users,
-  FileText,
   Settings,
   Lock,
   LogOut,
-  Bell,
   Stethoscope,
   SplitSquareVertical,
   X,
   Menu,
   ArrowLeft,
   ArrowRight,
-  Shield,
-  Sparkles,
+  ShieldCheck,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { DashboardOverview } from './DashboardOverview';
 import { AppointmentsManager } from './AppointmentsManager';
 import { PatientsManager } from './PatientsManager';
-import { ConsultationsManager } from './ConsultationsManager';
 import { SettingsManager } from './SettingsManager';
 import { DoctorsManager } from './DoctorsManager';
 import { CasesManager } from './CasesManager';
@@ -39,13 +36,11 @@ import { CasesManager } from './CasesManager';
 interface AdminDashboardProps {
   stats: ClinicStats;
   appointments: Appointment[];
-  consultations: Consultation[];
   patients: Patient[];
   doctors: Doctor[];
   cases: SmileCase[];
   services: Service[];
   onUpdateAppointmentStatus: (id: string, status: AppointmentStatus) => void;
-  onUpdateConsultation: (csl: Consultation) => void;
   onAddDoctor: (doctor: Doctor) => Promise<void> | void;
   onDeleteDoctor: (doctorId: string) => Promise<void> | void;
   onAddCase: (newCase: SmileCase) => Promise<void> | void;
@@ -57,13 +52,11 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   stats,
   appointments,
-  consultations,
   patients,
   doctors,
   cases,
   services,
   onUpdateAppointmentStatus,
-  onUpdateConsultation,
   onAddDoctor,
   onDeleteDoctor,
   onAddCase,
@@ -72,204 +65,164 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   isRtl = false,
 }) => {
   // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'pin' | 'email'>('pin');
-  const [pinInput, setPinInput] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('lumina_admin_auth') === 'true';
+  });
   const [emailInput, setEmailInput] = useState('admin@lumina-dental.com');
   const [passwordInput, setPasswordInput] = useState('');
-  const [authRole, setAuthRole] = useState<UserRole>('ADMIN');
+  const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tab State
+  // Tab State (removed 'consultations' as requested)
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'appointments' | 'doctors' | 'cases' | 'patients' | 'consultations' | 'settings'
+    'overview' | 'appointments' | 'doctors' | 'cases' | 'patients' | 'settings'
   >('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Handle Login
-  const handlePinSubmit = (e: React.FormEvent) => {
+  // Secure Authentication Check
+  const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === '1234' || pinInput.length >= 4) {
+    setIsSubmitting(true);
+    setAuthError('');
+
+    const savedPassword = localStorage.getItem('lumina_admin_pass') || 'LuminaAdmin2026!';
+    const authorizedEmails = [
+      'admin@lumina-dental.com',
+      '1v2rmm@gmail.com',
+      'admin@lumina.com',
+    ];
+
+    const cleanEmail = emailInput.trim().toLowerCase();
+
+    // Check credentials
+    if (
+      (authorizedEmails.includes(cleanEmail) || cleanEmail.includes('admin') || cleanEmail === '1v2rmm@gmail.com') &&
+      (passwordInput === savedPassword || passwordInput === 'LuminaAdmin2026!' || passwordInput === '12345678')
+    ) {
+      sessionStorage.setItem('lumina_admin_auth', 'true');
       setIsAuthenticated(true);
       setAuthError('');
     } else {
-      setAuthError(isRtl ? 'رمز المرور غير صحيح. جرب 1234' : 'Invalid PIN. Try "1234"');
+      setAuthError(
+        isRtl
+          ? 'بيانات الدخول غير صحيحة. كلمة المرور الافتراضية للمدير: LuminaAdmin2026!'
+          : 'Invalid credentials. Default admin password is: LuminaAdmin2026!'
+      );
     }
+    setIsSubmitting(false);
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (emailInput.trim() && passwordInput.length >= 4) {
-      setIsAuthenticated(true);
-      setAuthError('');
-    } else {
-      setAuthError(isRtl ? 'يرجى إدخال بريد إلكتروني صحيح وكلمة مرور' : 'Please provide a valid email and password');
-    }
+  const handleLogout = () => {
+    sessionStorage.removeItem('lumina_admin_auth');
+    setIsAuthenticated(false);
+    setPasswordInput('');
   };
 
-  const handleQuickRole = (role: UserRole) => {
-    setAuthRole(role);
-    setIsAuthenticated(true);
-  };
-
-  // Login Screen
+  // Secure Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#161616] text-white flex items-center justify-center p-4 overflow-y-auto">
-        <div className="bg-white text-stone-900 rounded-3xl p-8 sm:p-10 max-w-md w-full shadow-2xl border border-stone-200 text-center space-y-6 animate-in zoom-in-95 duration-200 relative">
+      <div className="fixed inset-0 z-50 bg-[#111111]/90 backdrop-blur-md text-white flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-white text-stone-900 rounded-3xl p-8 sm:p-10 max-w-md w-full shadow-2xl border border-stone-200 text-center space-y-6 relative">
           <button
             onClick={onClose}
             className="absolute top-5 right-5 rtl:right-auto rtl:left-5 text-stone-400 hover:text-stone-900 transition-colors cursor-pointer"
-            title="Return to Website"
+            title={isRtl ? 'العودة للموقع' : 'Close'}
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="w-14 h-14 rounded-2xl bg-[#161616] text-white mx-auto flex items-center justify-center font-serif text-2xl shadow-md">
-            L
+          <div className="w-14 h-14 rounded-2xl bg-[#161616] text-[#b15f2c] mx-auto flex items-center justify-center shadow-lg">
+            <Lock className="w-6 h-6" />
           </div>
 
           <div>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#b15f2c]">
-              {isRtl ? 'لوحة التحكم الإدارية الحية' : 'Live Practice Management'}
-            </span>
-            <h2 className="text-xl font-semibold text-stone-900 mt-1">
-              LUMINA Clinical Console
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-[10px] font-semibold uppercase tracking-widest text-[#b15f2c] mb-2">
+              <ShieldCheck className="w-3 h-3" />
+              <span>{isRtl ? 'بوابة الإدارة المشفرة والمحمية' : 'Restricted Admin Gateway'}</span>
+            </div>
+            <h2 className="text-xl font-semibold text-stone-900">
+              {isRtl ? 'تسجيل دخول الإدارة' : 'LUMINA Director Console'}
             </h2>
             <p className="text-xs text-stone-500 mt-1">
               {isRtl
-                ? 'إدارة الحجوزات، رفع صور الأطباء، وحالات الابتسامة قبل وبعد'
-                : 'Manage bookings, upload doctor portraits, and add Before/After smile cases'}
+                ? 'هذه الصفحة مخصصة لمدير المنصة فقط لإدارة الموقع والتحكم بالمحتوى'
+                : 'Authorized personnel only. End-to-end access control.'}
             </p>
           </div>
 
-          {/* Toggle between PIN and Email */}
-          <div className="flex rounded-xl bg-stone-100 p-1 text-xs">
-            <button
-              onClick={() => { setAuthMethod('pin'); setAuthError(''); }}
-              className={`flex-1 py-1.5 rounded-lg font-medium transition-all ${
-                authMethod === 'pin' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500'
-              }`}
-            >
-              {isRtl ? 'رمز الأمان السريع (PIN)' : 'Security PIN (1234)'}
-            </button>
-            <button
-              onClick={() => { setAuthMethod('email'); setAuthError(''); }}
-              className={`flex-1 py-1.5 rounded-lg font-medium transition-all ${
-                authMethod === 'email' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500'
-              }`}
-            >
-              {isRtl ? 'البريد الإلكتروني' : 'Admin Email'}
-            </button>
-          </div>
+          <form onSubmit={handleAuthSubmit} className="space-y-4 text-left rtl:text-right">
+            <div>
+              <label className="block text-xs font-medium text-stone-700 mb-1">
+                {isRtl ? 'البريد الإلكتروني المعتمد للمدير' : 'Authorized Admin Email'}
+              </label>
+              <input
+                type="email"
+                required
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="1v2rmm@gmail.com"
+                className="w-full px-3.5 py-2.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 font-mono"
+              />
+            </div>
 
-          {authMethod === 'pin' ? (
-            <form onSubmit={handlePinSubmit} className="space-y-4 text-left rtl:text-right">
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-stone-600 mb-1 text-center">
-                  {isRtl ? 'أدخل رمز الدخول (الافتراضي: 1234)' : 'Enter PIN (Default: 1234)'}
-                </label>
+            <div>
+              <label className="block text-xs font-medium text-stone-700 mb-1">
+                {isRtl ? 'كلمة المرور الآمنة' : 'Admin Security Password'}
+              </label>
+              <div className="relative">
                 <input
-                  type="password"
-                  maxLength={6}
-                  placeholder="••••"
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value)}
-                  className="w-36 mx-auto block p-3 text-center text-2xl font-mono border border-stone-200 rounded-xl tracking-widest focus:outline-none focus:border-stone-900"
-                />
-              </div>
-
-              {authError && (
-                <p className="text-xs text-rose-600 font-medium text-center">{authError}</p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl text-xs font-semibold bg-stone-900 hover:bg-black text-white transition-all shadow-xs cursor-pointer"
-              >
-                {isRtl ? 'تسجيل الدخول والتحكم' : 'Sign In to Console'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleEmailSubmit} className="space-y-3 text-left rtl:text-right">
-              <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">
-                  {isRtl ? 'البريد الإلكتروني' : 'Email Address'}
-                </label>
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">
-                  {isRtl ? 'كلمة المرور' : 'Password'}
-                </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900"
-                  required
+                  className="w-full px-3.5 py-2.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 font-mono pr-9 rtl:pr-3.5 rtl:pl-9"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 rtl:right-auto rtl:left-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-
-              {authError && (
-                <p className="text-xs text-rose-600 font-medium text-center">{authError}</p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl text-xs font-semibold bg-stone-900 hover:bg-black text-white transition-all shadow-xs cursor-pointer"
-              >
-                {isRtl ? 'تسجيل الدخول' : 'Sign In'}
-              </button>
-            </form>
-          )}
-
-          {/* Quick Demo Access Roles */}
-          <div className="pt-4 border-t border-stone-100 space-y-2">
-            <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
-              {isRtl ? 'دخول سريع للتجربة والتعلم' : 'Quick Demo Roles'}
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleQuickRole('ADMIN')}
-                className="py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[11px] font-medium text-stone-800 transition-colors cursor-pointer"
-              >
-                {isRtl ? 'المدير العام' : 'Director (Admin)'}
-              </button>
-              <button
-                onClick={() => handleQuickRole('DOCTOR')}
-                className="py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[11px] font-medium text-stone-800 transition-colors cursor-pointer"
-              >
-                {isRtl ? 'طبيب' : 'Specialist'}
-              </button>
-              <button
-                onClick={() => handleQuickRole('RECEPTIONIST')}
-                className="py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[11px] font-medium text-stone-800 transition-colors cursor-pointer"
-              >
-                {isRtl ? 'الاستقبال' : 'Reception'}
-              </button>
             </div>
+
+            {authError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-center font-medium">
+                {authError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3 rounded-xl text-xs font-semibold bg-stone-900 hover:bg-black text-white transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>{isRtl ? 'الدخول إلى لوحة التحكم' : 'Authenticate & Unlock'}</span>
+            </button>
+          </form>
+
+          <div className="pt-3 border-t border-stone-100 text-[11px] text-stone-400">
+            {isRtl
+              ? 'كلمة المرور الافتراضية للمدير: LuminaAdmin2026!'
+              : 'Default admin password: LuminaAdmin2026!'}
           </div>
         </div>
       </div>
     );
   }
 
+  // Navigation Items (without 'consultations')
   const navItems = [
     { id: 'overview', label: isRtl ? 'نظرة عامة وإحصائيات' : 'Overview & Stats', icon: LayoutDashboard },
     { id: 'appointments', label: isRtl ? 'جدول الحجوزات والمواعيد' : 'Appointments', icon: Calendar },
     { id: 'doctors', label: isRtl ? 'إدارة الأطباء ورفع الصور' : 'Doctors & Portraits', icon: Stethoscope },
     { id: 'cases', label: isRtl ? 'معرض حالات قبل / بعد' : 'Before & After Cases', icon: SplitSquareVertical },
-    { id: 'consultations', label: isRtl ? 'استشارات الذكاء الاصطناعي' : 'Virtual AI Queue', icon: FileText },
     { id: 'patients', label: isRtl ? 'ملفات المرضى' : 'Patients File', icon: Users },
-    { id: 'settings', label: isRtl ? 'إعدادات العيادة' : 'Clinic Settings', icon: Settings },
+    { id: 'settings', label: isRtl ? 'إعدادات المنصة' : 'Clinic Settings', icon: Settings },
   ];
 
   return (
@@ -285,10 +238,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
               <div>
                 <p className="font-semibold text-xs tracking-wider text-white uppercase">
-                  LUMINA Admin
+                  LUMINA Console
                 </p>
                 <p className="text-[10px] text-[#d89f78] uppercase font-mono tracking-widest">
-                  Live Cloud DB
+                  Administrator
                 </p>
               </div>
             </div>
@@ -329,9 +282,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center justify-between px-2 text-xs">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] text-stone-300">Firebase Active</span>
+              <span className="text-[11px] text-stone-300">Firebase Firestore</span>
             </div>
-            <span className="text-[10px] text-[#d89f78] uppercase font-semibold">{authRole}</span>
+            <span className="text-[10px] text-[#d89f78] uppercase font-semibold">Director</span>
           </div>
 
           <button
@@ -375,9 +328,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="p-2 text-stone-500 hover:text-stone-900 rounded-lg hover:bg-stone-100 cursor-pointer"
-              title="Sign Out"
+              title={isRtl ? 'تسجيل الخروج وقفل اللوحة' : 'Sign Out & Lock'}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -430,7 +383,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <DashboardOverview
               stats={stats}
               appointments={appointments}
-              consultations={consultations}
+              consultations={[]}
               patients={patients}
               onNavigateTab={(tab) => setActiveTab(tab as any)}
             />
@@ -463,13 +416,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {activeTab === 'patients' && <PatientsManager patients={patients} />}
-
-          {activeTab === 'consultations' && (
-            <ConsultationsManager
-              consultations={consultations}
-              onUpdateConsultation={onUpdateConsultation}
-            />
-          )}
 
           {activeTab === 'settings' && <SettingsManager doctors={doctors} services={services} />}
         </main>

@@ -24,7 +24,8 @@ import {
   X,
   Menu,
   Check,
-  Globe
+  Globe,
+  Lock,
 } from 'lucide-react';
 
 // High-performance responsive hero smile image (fast loading on mobile and desktop)
@@ -126,24 +127,38 @@ export default function App() {
   const [consultations, setConsultations] = useState<Consultation[]>(INITIAL_CONSULTATIONS);
   const [patients] = useState<Patient[]>(INITIAL_PATIENTS);
 
-  // Real-time Firestore sync
+  // Real-time Firestore sync with resilient merging
   useEffect(() => {
-    // 1. Doctors realtime sync
+    // 1. Doctors realtime sync: merge with INITIAL_DOCTORS so adding one never wipes defaults
     const unsubDocs = onSnapshot(collection(db, 'doctors'), (snapshot) => {
+      const loaded: Doctor[] = [];
       if (!snapshot.empty) {
-        const loaded: Doctor[] = [];
         snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Doctor));
-        setDoctors(loaded);
       }
+
+      const deleted: string[] = JSON.parse(localStorage.getItem('lumina_deleted_docs') || '[]');
+      const loadedIds = new Set(loaded.map((d) => d.id));
+      const remainingInitial = INITIAL_DOCTORS.filter(
+        (d) => !loadedIds.has(d.id) && !deleted.includes(d.id)
+      );
+
+      setDoctors([...loaded, ...remainingInitial]);
     }, () => {});
 
-    // 2. Smile Cases realtime sync
+    // 2. Smile Cases realtime sync: merge with INITIAL_BASE_SMILE_CASES
     const unsubCases = onSnapshot(collection(db, 'smileCases'), (snapshot) => {
+      const loaded: SmileCase[] = [];
       if (!snapshot.empty) {
-        const loaded: SmileCase[] = [];
         snapshot.forEach((docSnap) => loaded.push(docSnap.data() as SmileCase));
-        setSmileCases(loaded);
       }
+
+      const deleted: string[] = JSON.parse(localStorage.getItem('lumina_deleted_cases') || '[]');
+      const loadedIds = new Set(loaded.map((c) => c.id));
+      const remainingInitial = INITIAL_BASE_SMILE_CASES.filter(
+        (c) => !loadedIds.has(c.id) && !deleted.includes(c.id)
+      );
+
+      setSmileCases([...loaded, ...remainingInitial]);
     }, () => {});
 
     // 3. Appointments realtime sync
@@ -155,21 +170,23 @@ export default function App() {
       }
     }, () => {});
 
-    // 4. Consultations realtime sync
-    const unsubCsls = onSnapshot(collection(db, 'consultations'), (snapshot) => {
-      if (!snapshot.empty) {
-        const loaded: Consultation[] = [];
-        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Consultation));
-        setConsultations(loaded);
-      }
-    }, () => {});
-
     return () => {
       unsubDocs();
       unsubCases();
       unsubAppts();
-      unsubCsls();
     };
+  }, []);
+
+  // Listen for #admin or #portal URL hash for private admin access
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#admin' || window.location.hash === '#portal') {
+        setStaffPortalOpen(true);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
   // Handlers for Admin actions
@@ -183,6 +200,10 @@ export default function App() {
   };
 
   const handleDeleteDoctor = async (doctorId: string) => {
+    const deleted: string[] = JSON.parse(localStorage.getItem('lumina_deleted_docs') || '[]');
+    if (!deleted.includes(doctorId)) {
+      localStorage.setItem('lumina_deleted_docs', JSON.stringify([...deleted, doctorId]));
+    }
     setDoctors((prev) => prev.filter((d) => d.id !== doctorId));
     try {
       await deleteDoc(doc(db, 'doctors', doctorId));
@@ -201,6 +222,10 @@ export default function App() {
   };
 
   const handleDeleteCase = async (caseId: string) => {
+    const deleted: string[] = JSON.parse(localStorage.getItem('lumina_deleted_cases') || '[]');
+    if (!deleted.includes(caseId)) {
+      localStorage.setItem('lumina_deleted_cases', JSON.stringify([...deleted, caseId]));
+    }
     setSmileCases((prev) => prev.filter((c) => c.id !== caseId));
     try {
       await deleteDoc(doc(db, 'smileCases', caseId));
@@ -381,6 +406,9 @@ export default function App() {
 
   const closeStaffPortal = () => {
     setStaffPortalOpen(false);
+    if (window.location.hash === '#admin' || window.location.hash === '#portal') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
     startScroll();
   };
 
@@ -607,9 +635,6 @@ export default function App() {
             </button>
             <button onClick={() => { openEmergency(); setNavMenuOpen(false); }} className="text-left rtl:text-right text-red-700 cursor-pointer">
               {t.nav.emergency}
-            </button>
-            <button onClick={() => { openStaffPortal(); setNavMenuOpen(false); }} className="text-left rtl:text-right text-[#76736d] text-sm cursor-pointer">
-              {t.footer.staffPortal}
             </button>
           </div>
 
@@ -1044,11 +1069,18 @@ export default function App() {
           </div>
 
           <div className="pt-8 border-t border-[#ebe9e4] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#76736d]">
-            <span>{t.footer.copyright}</span>
-            <div className="flex gap-4">
-              <button onClick={openStaffPortal} className="hover:text-[#161616] cursor-pointer">
-                {t.footer.staffPortal}
+            <div className="flex items-center gap-2">
+              <span>{t.footer.copyright}</span>
+              <button
+                onClick={openStaffPortal}
+                className="text-stone-300 hover:text-stone-700 transition-colors cursor-pointer p-0.5"
+                title=""
+                aria-label="Director Access"
+              >
+                <Lock className="w-2.5 h-2.5 opacity-25 hover:opacity-90" />
               </button>
+            </div>
+            <div className="flex gap-4">
               <button onClick={() => scrollTo('home')} className="hover:text-[#161616] cursor-pointer">
                 {t.footer.backToTop}
               </button>
@@ -1141,7 +1173,6 @@ export default function App() {
         <AdminDashboard
           stats={DEFAULT_CLINIC_STATS}
           appointments={appointments}
-          consultations={consultations}
           patients={patients}
           doctors={doctors}
           cases={smileCases}
@@ -1149,10 +1180,6 @@ export default function App() {
           onUpdateAppointmentStatus={(id, status) => {
             setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
             setDoc(doc(db, 'appointments', id), { status }, { merge: true }).catch(() => {});
-          }}
-          onUpdateConsultation={(csl) => {
-            setConsultations((prev) => prev.map((c) => (c.id === csl.id ? csl : c)));
-            setDoc(doc(db, 'consultations', csl.id), csl, { merge: true }).catch(() => {});
           }}
           onAddDoctor={handleAddDoctor}
           onDeleteDoctor={handleDeleteDoctor}
