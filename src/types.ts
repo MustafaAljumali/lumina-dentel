@@ -110,3 +110,18 @@ export interface StaffUser {
   role: StaffRole;
   avatar: string;
 }
+
+export interface SmileCase {
+  id: string;
+  treatment?: string;
+  title?: string;
+  category: string;
+  beforeImg: string;
+  afterImg: string;
+  description: string;
+  doctor?: string;
+  duration?: string;
+  technique?: string;
+  createdAt?: string;
+}
+

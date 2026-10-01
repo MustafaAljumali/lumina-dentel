@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Doctors directory
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Before & After smile cases
+    match /smileCases/{smileCaseId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Clinic appointments
+    match /appointments/{appointmentId} {
+      allow read: if true;
+      allow create: if request.resource.data.serviceId is string
+                    && request.resource.data.doctorId is string;
+      allow update, delete: if isAuthenticated();
+    }
+
+    // Virtual consultations
+    match /consultations/{consultationId} {
+      allow read: if true;
+      allow create: if request.resource.data.patientName is string;
+      allow update, delete: if isAuthenticated();
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Lenis from 'lenis';
-import { Doctor, Service, Appointment, Consultation, Patient } from './types';
+import { Doctor, Service, Appointment, Consultation, Patient, SmileCase, ClinicStats } from './types';
 import { INITIAL_DOCTORS, INITIAL_SERVICES, INITIAL_APPOINTMENTS, INITIAL_CONSULTATIONS, INITIAL_PATIENTS } from './data/initialData';
 import {
   Language,
@@ -14,6 +14,9 @@ import { VirtualAssessment } from './components/consultation/VirtualAssessment';
 import { CostEstimator } from './components/services/CostEstimator';
 import { PatientTestimonials } from './components/home/PatientTestimonials';
 import { WhyChooseUs } from './components/home/WhyChooseUs';
+import { AdminDashboard } from './components/dashboard/AdminDashboard';
+import { db } from './lib/firebase';
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -28,18 +31,67 @@ import {
 const HERO_SMILE_IMAGE = 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=82&w=1920';
 const HERO_SMILE_SRCSET = 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=80&w=720 720w, https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=80&w=1280 1280w, https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=82&w=1920 1920w';
 
-// Minimalist Before & After Case definition
-interface SmileCase {
-  id: string;
-  title: string;
-  category: string;
-  doctor: string;
-  duration: string;
-  technique: string;
-  beforeImg: string;
-  afterImg: string;
-  description: string;
-}
+const INITIAL_BASE_SMILE_CASES: SmileCase[] = [
+  {
+    id: 'case-1',
+    title: 'Handcrafted Porcelain Veneers',
+    treatment: 'Handcrafted Porcelain Veneers',
+    category: 'Cosmetic',
+    doctor: 'Dr. Sarah Chen',
+    duration: '2 visits (8 days)',
+    technique: '0.3mm minimal-prep feldspathic ceramics',
+    beforeImg: '/images/veneers_before.jpg',
+    afterImg: '/images/veneers_after.jpg',
+    description: 'Placed 8 ultra-thin veneers to correct fluorosis staining, minor edge chipping, and subtle arch asymmetry with lifelike light transmission.'
+  },
+  {
+    id: 'case-2',
+    title: 'Invisalign® Clear Aligner Therapy',
+    treatment: 'Invisalign® Clear Aligner Therapy',
+    category: 'Orthodontics',
+    doctor: 'Dr. Marcus Vance',
+    duration: '6 months',
+    technique: 'Accelerated clear aligners',
+    beforeImg: '/images/invisalign_before.jpg',
+    afterImg: '/images/invisalign_after.jpg',
+    description: 'Corrected deep overbite and anterior crowding without metal brackets or tooth extractions using weekly custom transparent aligners.'
+  },
+  {
+    id: 'case-3',
+    title: 'Laser Teeth Whitening (Zoom Ultimate)',
+    treatment: 'Laser Teeth Whitening (Zoom Ultimate)',
+    category: 'Whitening',
+    doctor: 'Dr. Sarah Chen',
+    duration: '45 minutes',
+    technique: 'In-office photoactivation laser whitening',
+    beforeImg: '/images/whitening_before.jpg',
+    afterImg: '/images/whitening_after.jpg',
+    description: 'Lifted stubborn coffee and tea stains by 8 full VITA shades in a single comfortable laser session with customized enamel desensitizer.'
+  },
+  {
+    id: 'case-4',
+    title: '3D Guided All-on-4 Implant Rehabilitation',
+    treatment: '3D Guided All-on-4 Implant Rehabilitation',
+    category: 'Restorative',
+    doctor: 'Dr. Elena Rostova',
+    duration: 'Same-day teeth',
+    technique: 'Titanium implants with monolithic zirconia bridge',
+    beforeImg: '/images/implants_before.jpg',
+    afterImg: '/images/implants_after.jpg',
+    description: 'Total arch replacement using 4 precision-guided titanium implants and fixed monolithic zirconia bridge for permanent function and youthful smile line.'
+  }
+];
+
+const DEFAULT_CLINIC_STATS: ClinicStats = {
+  todayAppointments: 4,
+  pendingConfirmations: 2,
+  newPatientsThisMonth: 18,
+  consultationRequests: 5,
+  trend: {
+    appointments: '+14% this month',
+    patients: '+22% new smiles',
+  }
+};
 
 export default function App() {
   const lenisRef = useRef<Lenis | null>(null);
@@ -66,12 +118,96 @@ export default function App() {
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
   const [staffPortalOpen, setStaffPortalOpen] = useState(false);
 
-  // Data
-  const [doctors] = useState<Doctor[]>(INITIAL_DOCTORS);
+  // Dynamic Data (synced with Firebase Firestore)
+  const [doctors, setDoctors] = useState<Doctor[]>(INITIAL_DOCTORS);
+  const [smileCases, setSmileCases] = useState<SmileCase[]>(INITIAL_BASE_SMILE_CASES);
   const [services] = useState<Service[]>(INITIAL_SERVICES);
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [consultations, setConsultations] = useState<Consultation[]>(INITIAL_CONSULTATIONS);
   const [patients] = useState<Patient[]>(INITIAL_PATIENTS);
+
+  // Real-time Firestore sync
+  useEffect(() => {
+    // 1. Doctors realtime sync
+    const unsubDocs = onSnapshot(collection(db, 'doctors'), (snapshot) => {
+      if (!snapshot.empty) {
+        const loaded: Doctor[] = [];
+        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Doctor));
+        setDoctors(loaded);
+      }
+    }, () => {});
+
+    // 2. Smile Cases realtime sync
+    const unsubCases = onSnapshot(collection(db, 'smileCases'), (snapshot) => {
+      if (!snapshot.empty) {
+        const loaded: SmileCase[] = [];
+        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as SmileCase));
+        setSmileCases(loaded);
+      }
+    }, () => {});
+
+    // 3. Appointments realtime sync
+    const unsubAppts = onSnapshot(collection(db, 'appointments'), (snapshot) => {
+      if (!snapshot.empty) {
+        const loaded: Appointment[] = [];
+        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Appointment));
+        setAppointments(loaded);
+      }
+    }, () => {});
+
+    // 4. Consultations realtime sync
+    const unsubCsls = onSnapshot(collection(db, 'consultations'), (snapshot) => {
+      if (!snapshot.empty) {
+        const loaded: Consultation[] = [];
+        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Consultation));
+        setConsultations(loaded);
+      }
+    }, () => {});
+
+    return () => {
+      unsubDocs();
+      unsubCases();
+      unsubAppts();
+      unsubCsls();
+    };
+  }, []);
+
+  // Handlers for Admin actions
+  const handleAddDoctor = async (newDoc: Doctor) => {
+    setDoctors((prev) => [newDoc, ...prev]);
+    try {
+      await setDoc(doc(db, 'doctors', newDoc.id), newDoc);
+    } catch (e) {
+      console.error('Firestore save doctor error:', e);
+    }
+  };
+
+  const handleDeleteDoctor = async (doctorId: string) => {
+    setDoctors((prev) => prev.filter((d) => d.id !== doctorId));
+    try {
+      await deleteDoc(doc(db, 'doctors', doctorId));
+    } catch (e) {
+      console.error('Firestore delete doctor error:', e);
+    }
+  };
+
+  const handleAddCase = async (newCase: SmileCase) => {
+    setSmileCases((prev) => [newCase, ...prev]);
+    try {
+      await setDoc(doc(db, 'smileCases', newCase.id), newCase);
+    } catch (e) {
+      console.error('Firestore save case error:', e);
+    }
+  };
+
+  const handleDeleteCase = async (caseId: string) => {
+    setSmileCases((prev) => prev.filter((c) => c.id !== caseId));
+    try {
+      await deleteDoc(doc(db, 'smileCases', caseId));
+    } catch (e) {
+      console.error('Firestore delete case error:', e);
+    }
+  };
 
   // Selections for booking
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
@@ -86,78 +222,25 @@ export default function App() {
   const isDragging = useRef(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  // Staff Portal State
-  const [staffPin, setStaffPin] = useState('');
-  const [staffAuthenticated, setStaffAuthenticated] = useState(false);
-  const [staffRole, setStaffRole] = useState<'ADMIN' | 'DOCTOR'>('ADMIN');
-
   // Header Scroll State
   const [scrolled, setScrolled] = useState(false);
-
-  // Cases data
-  const baseSmileCases: SmileCase[] = [
-    {
-      id: 'case-1',
-      title: 'Handcrafted Porcelain Veneers',
-      category: 'Cosmetic',
-      doctor: 'Dr. Sarah Chen',
-      duration: '2 visits (8 days)',
-      technique: '0.3mm minimal-prep feldspathic ceramics',
-      beforeImg: '/images/veneers_before.jpg',
-      afterImg: '/images/veneers_after.jpg',
-      description: 'Placed 8 ultra-thin veneers to correct fluorosis staining, minor edge chipping, and subtle arch asymmetry with lifelike light transmission.'
-    },
-    {
-      id: 'case-2',
-      title: 'Invisalign® Clear Aligner Therapy',
-      category: 'Orthodontics',
-      doctor: 'Dr. Marcus Vance',
-      duration: '6 months',
-      technique: 'Accelerated clear aligners',
-      beforeImg: '/images/invisalign_before.jpg',
-      afterImg: '/images/invisalign_after.jpg',
-      description: 'Corrected deep overbite and anterior crowding without metal brackets or tooth extractions using weekly custom transparent aligners.'
-    },
-    {
-      id: 'case-3',
-      title: 'Laser Teeth Whitening (Zoom Ultimate)',
-      category: 'Whitening',
-      doctor: 'Dr. Sarah Chen',
-      duration: '45 minutes',
-      technique: 'In-office photoactivation laser whitening',
-      beforeImg: '/images/whitening_before.jpg',
-      afterImg: '/images/whitening_after.jpg',
-      description: 'Lifted stubborn coffee and tea stains by 8 full VITA shades in a single comfortable laser session with customized enamel desensitizer.'
-    },
-    {
-      id: 'case-4',
-      title: '3D Guided All-on-4 Implant Rehabilitation',
-      category: 'Restorative',
-      doctor: 'Dr. Elena Rostova',
-      duration: 'Same-day teeth',
-      technique: 'Titanium implants with monolithic zirconia bridge',
-      beforeImg: '/images/implants_before.jpg',
-      afterImg: '/images/implants_after.jpg',
-      description: 'Total arch replacement using 4 precision-guided titanium implants and fixed monolithic zirconia bridge for permanent function and youthful smile line.'
-    }
-  ];
 
   // Preload all gallery and doctor images in background after first paint for instantaneous interaction
   useEffect(() => {
     const timer = setTimeout(() => {
-      baseSmileCases.forEach((c) => {
+      smileCases.forEach((c) => {
         const i1 = new Image();
         i1.src = c.beforeImg;
         const i2 = new Image();
         i2.src = c.afterImg;
       });
-      INITIAL_DOCTORS.forEach((d) => {
+      doctors.forEach((d) => {
         const i = new Image();
         i.src = d.photo;
       });
     }, 200);
     return () => clearTimeout(timer);
-  }, []);
+  }, [smileCases, doctors]);
 
   // Localized data
   const localizedServices = services.map((srv) => {
@@ -184,7 +267,7 @@ export default function App() {
     return doc;
   });
 
-  const localizedCases = baseSmileCases.map((c) => {
+  const localizedCases = smileCases.map((c) => {
     if (language === 'ar' && ARABIC_CASES_MAP[c.id]) {
       return {
         ...c,
@@ -987,7 +1070,10 @@ export default function App() {
               services={localizedServices}
               preselectedDoctorId={selectedDoctorId}
               preselectedServiceId={selectedServiceId}
-              onBookingComplete={(apt) => setAppointments((prev) => [apt, ...prev])}
+              onBookingComplete={(apt) => {
+                setAppointments((prev) => [apt, ...prev]);
+                setDoc(doc(db, 'appointments', apt.id), apt).catch((e) => console.log('Local booking saved:', e));
+              }}
               onNavigateHome={closeBooking}
               content={t.bookingModal}
             />
@@ -1000,7 +1086,10 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center overflow-y-auto">
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-[#ebe9e4] max-h-[90vh] flex flex-col">
             <VirtualAssessment
-              onConsultationSubmitted={(csl) => setConsultations((prev) => [csl, ...prev])}
+              onConsultationSubmitted={(csl) => {
+                setConsultations((prev) => [csl, ...prev]);
+                setDoc(doc(db, 'consultations', csl.id), csl).catch((e) => console.log('Local consultation saved:', e));
+              }}
               onNavigateToBooking={() => {
                 closeAssessment();
                 openBooking();
@@ -1047,76 +1136,31 @@ export default function App() {
         </div>
       )}
 
-      {/* Staff Portal Modal */}
+      {/* Staff Portal / Admin Dashboard */}
       {staffPortalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-4 flex items-center justify-center overflow-y-auto">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 space-y-6 shadow-xl relative border border-[#ebe9e4]">
-            <button
-              onClick={closeStaffPortal}
-              className="absolute top-5 right-5 rtl:right-auto rtl:left-5 text-[#5a5854] hover:text-[#161616] cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {!staffAuthenticated ? (
-              <div className="max-w-xs mx-auto text-center py-6 space-y-4">
-                <span className="text-xs font-semibold uppercase tracking-widest text-[#9c5828]">{t.staffModal.portalTitle}</span>
-                <h3 className="text-lg font-medium text-[#161616]">{t.staffModal.enterPin}</h3>
-                <input
-                  type="password"
-                  maxLength={4}
-                  placeholder="1234"
-                  value={staffPin}
-                  onChange={(e) => {
-                    setStaffPin(e.target.value);
-                    if (e.target.value === '1234') setStaffAuthenticated(true);
-                  }}
-                  className="w-32 mx-auto p-2.5 text-center text-xl font-mono border border-[#ebe9e4] rounded-lg tracking-widest focus:outline-none focus:border-[#161616]"
-                />
-                <div className="pt-2 flex justify-center gap-2">
-                  <button
-                    onClick={() => { setStaffRole('ADMIN'); setStaffAuthenticated(true); }}
-                    className="px-3 py-1.5 rounded border border-[#ebe9e4] text-xs text-[#5a5854] hover:text-[#161616] cursor-pointer"
-                  >
-                    {t.staffModal.quickDemo}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 text-xs">
-                <div className="flex items-center justify-between pb-3 border-b border-[#ebe9e4]">
-                  <div>
-                    <h3 className="font-medium text-[#161616] text-sm">{t.staffModal.scheduleTitle}</h3>
-                    <p className="text-[#76736d]">Role: {staffRole}</p>
-                  </div>
-                  <button
-                    onClick={() => setStaffAuthenticated(false)}
-                    className="text-[#76736d] hover:text-[#161616] cursor-pointer"
-                  >
-                    {t.staffModal.signOut}
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {appointments.map((apt) => (
-                    <div key={apt.id} className="p-3 bg-[#faf9f6] rounded-lg border border-[#ebe9e4] flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-[#161616]">{apt.patient?.firstName} {apt.patient?.lastName}</div>
-                        <div className="text-[#5a5854]">{apt.service?.name} with {apt.doctor?.name}</div>
-                        <div className="text-[11px] text-[#76736d]">{apt.date} at {apt.timeSlot}</div>
-                      </div>
-                      <div className="text-right rtl:text-left">
-                        <span className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
-                          {apt.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <AdminDashboard
+          stats={DEFAULT_CLINIC_STATS}
+          appointments={appointments}
+          consultations={consultations}
+          patients={patients}
+          doctors={doctors}
+          cases={smileCases}
+          services={services}
+          onUpdateAppointmentStatus={(id, status) => {
+            setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+            setDoc(doc(db, 'appointments', id), { status }, { merge: true }).catch(() => {});
+          }}
+          onUpdateConsultation={(csl) => {
+            setConsultations((prev) => prev.map((c) => (c.id === csl.id ? csl : c)));
+            setDoc(doc(db, 'consultations', csl.id), csl, { merge: true }).catch(() => {});
+          }}
+          onAddDoctor={handleAddDoctor}
+          onDeleteDoctor={handleDeleteDoctor}
+          onAddCase={handleAddCase}
+          onDeleteCase={handleDeleteCase}
+          onClose={closeStaffPortal}
+          isRtl={language === 'ar'}
+        />
       )}
     </div>
   );

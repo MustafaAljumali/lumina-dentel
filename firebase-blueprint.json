@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Medical specialist at LUMINA Dental & Facial Aesthetics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "specialty": { "type": "string" },
+        "bio": { "type": "string" },
+        "photo": { "type": "string" },
+        "rating": { "type": "number" },
+        "experience": { "type": "string" },
+        "nextAvailable": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "specialty", "photo"]
+    },
+    "SmileCase": {
+      "title": "SmileCase",
+      "description": "Before & After clinical transformation showcase",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "beforeImg": { "type": "string" },
+        "afterImg": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "beforeImg", "afterImg"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Patient booking record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "date": { "type": "string" },
+        "timeSlot": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] },
+        "patientFirstName": { "type": "string" },
+        "patientLastName": { "type": "string" },
+        "patientEmail": { "type": "string" },
+        "patientPhone": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "serviceId", "doctorId", "date", "timeSlot", "status"]
+    },
+    "Consultation": {
+      "title": "Consultation",
+      "description": "Virtual AI smile consultation submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientEmail": { "type": "string" },
+        "patientPhone": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "concern": { "type": "string" },
+        "aiAnalysis": { "type": "string" },
+        "doctorNotes": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "patientName", "patientEmail"]
+    }
+  },
+  "firestore": {
+    "/doctors/{doctorId}": {
+      "schema": "Doctor",
+      "description": "Directory of clinic doctors"
+    },
+    "/smileCases/{smileCaseId}": {
+      "schema": "SmileCase",
+      "description": "Before & after smile transformation cases"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Patient appointment bookings"
+    },
+    "/consultations/{consultationId}": {
+      "schema": "Consultation",
+      "description": "Virtual smile consultations"
+    }
+  }
+}
