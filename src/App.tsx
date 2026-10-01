@@ -24,8 +24,9 @@ import {
   Globe
 } from 'lucide-react';
 
-// Main 4K resolution smile portrait loved by the user
-const HERO_SMILE_IMAGE = 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=100&w=3840';
+// High-performance responsive hero smile image (fast loading on mobile and desktop)
+const HERO_SMILE_IMAGE = 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=82&w=1920';
+const HERO_SMILE_SRCSET = 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=80&w=720 720w, https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=80&w=1280 1280w, https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=82&w=1920 1920w';
 
 // Minimalist Before & After Case definition
 interface SmileCase {
@@ -140,6 +141,23 @@ export default function App() {
       description: 'Total arch replacement using 4 precision-guided titanium implants and fixed monolithic zirconia bridge for permanent function and youthful smile line.'
     }
   ];
+
+  // Preload all gallery and doctor images in background after first paint for instantaneous interaction
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      baseSmileCases.forEach((c) => {
+        const i1 = new Image();
+        i1.src = c.beforeImg;
+        const i2 = new Image();
+        i2.src = c.afterImg;
+      });
+      INITIAL_DOCTORS.forEach((d) => {
+        const i = new Image();
+        i.src = d.photo;
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Localized data
   const localizedServices = services.map((srv) => {
@@ -532,6 +550,10 @@ export default function App() {
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <img
             src={HERO_SMILE_IMAGE}
+            srcSet={HERO_SMILE_SRCSET}
+            sizes="100vw"
+            fetchPriority="high"
+            decoding="async"
             alt="LUMINA Dental Aesthetic Smile"
             className="w-full h-full object-cover object-center"
           />
@@ -699,6 +721,8 @@ export default function App() {
                   src={currentCase.afterImg}
                   alt="After"
                   className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
                 <span className="absolute top-4 right-4 rtl:right-auto rtl:left-4 bg-black/75 text-white text-[10px] font-medium px-2.5 py-1 rounded">
@@ -715,6 +739,8 @@ export default function App() {
                     alt="Before"
                     className="absolute inset-y-0 left-0 h-full max-w-none w-full object-cover"
                     style={{ width: sliderRef.current?.getBoundingClientRect().width || '100%' }}
+                    loading="eager"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                   />
                   <span className="absolute top-4 left-4 rtl:left-auto rtl:right-4 bg-white/90 text-[#161616] text-[10px] font-medium px-2.5 py-1 rounded">
