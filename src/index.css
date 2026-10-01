@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Onest', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #ffffff;
+    color: #111111;
+    overflow-x: hidden;
+  }
+
+  [dir="rtl"], [dir="rtl"] body {
+    font-family: 'Alexandria', 'Onest', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid #b15f2c;
+  outline-offset: 2px;
+}
+
+/* Custom visible & smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1eee7;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bab5aa;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9c5828;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

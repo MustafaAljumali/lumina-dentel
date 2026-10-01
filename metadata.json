@@ -1,0 +1,6 @@
+{
+  "name": "Apex Modern Dental & Aesthetics",
+  "description": "Independent modern dental and aesthetic practice providing 3D digital dentistry, laser whitening, porcelain veneers, Invisalign clear aligners, and AI virtual smile consultations.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
