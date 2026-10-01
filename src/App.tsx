@@ -102,8 +102,8 @@ export default function App() {
       doctor: 'Dr. Sarah Chen',
       duration: '2 visits (8 days)',
       technique: '0.3mm minimal-prep feldspathic ceramics',
-      beforeImg: '/src/assets/images/fair_veneers_before_1790877451273.jpg',
-      afterImg: '/src/assets/images/fair_veneers_after_1790877462479.jpg',
+      beforeImg: '/images/veneers_before.jpg',
+      afterImg: '/images/veneers_after.jpg',
       description: 'Placed 8 ultra-thin veneers to correct fluorosis staining, minor edge chipping, and subtle arch asymmetry with lifelike light transmission.'
     },
     {
@@ -113,8 +113,8 @@ export default function App() {
       doctor: 'Dr. Marcus Vance',
       duration: '6 months',
       technique: 'Accelerated clear aligners',
-      beforeImg: '/src/assets/images/invisalign_before_1790878093681.jpg',
-      afterImg: '/src/assets/images/invisalign_after_1790878105845.jpg',
+      beforeImg: '/images/invisalign_before.jpg',
+      afterImg: '/images/invisalign_after.jpg',
       description: 'Corrected deep overbite and anterior crowding without metal brackets or tooth extractions using weekly custom transparent aligners.'
     },
     {
@@ -124,8 +124,8 @@ export default function App() {
       doctor: 'Dr. Sarah Chen',
       duration: '45 minutes',
       technique: 'In-office photoactivation laser whitening',
-      beforeImg: '/src/assets/images/whitening_before_1790878123519.jpg',
-      afterImg: '/src/assets/images/whitening_after_1790878261005.jpg',
+      beforeImg: '/images/whitening_before.jpg',
+      afterImg: '/images/whitening_after.jpg',
       description: 'Lifted stubborn coffee and tea stains by 8 full VITA shades in a single comfortable laser session with customized enamel desensitizer.'
     },
     {
@@ -135,8 +135,8 @@ export default function App() {
       doctor: 'Dr. Elena Rostova',
       duration: 'Same-day teeth',
       technique: 'Titanium implants with monolithic zirconia bridge',
-      beforeImg: '/src/assets/images/implants_before_1790878279613.jpg',
-      afterImg: '/src/assets/images/implants_after_1790878291097.jpg',
+      beforeImg: '/images/implants_before.jpg',
+      afterImg: '/images/implants_after.jpg',
       description: 'Total arch replacement using 4 precision-guided titanium implants and fixed monolithic zirconia bridge for permanent function and youthful smile line.'
     }
   ];
@@ -819,10 +819,7 @@ export default function App() {
                     src={doc.photo}
                     alt={doc.name}
                     className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=800';
-                    }}
+                    loading="lazy"
                   />
                 </div>
 

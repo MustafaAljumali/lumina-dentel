@@ -11,7 +11,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
       { degree: 'DDS', institution: 'UCLA School of Dentistry', year: '2010' },
       { degree: 'MS in Prosthodontics', institution: 'Columbia University', year: '2012' }
     ],
-    photo: '/src/assets/images/dr_sarah_chen_1790877283028.jpg',
+    photo: '/images/dr_sarah_chen.jpg',
     isActive: true,
     nextAvailable: 'Tomorrow at 10:00 AM'
   },
@@ -25,7 +25,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
       { degree: 'DMD', institution: 'Harvard School of Dental Medicine', year: '2013' },
       { degree: 'Orthodontic Residency', institution: 'UCSF Dental Center', year: '2015' }
     ],
-    photo: '/src/assets/images/dr_marcus_vance_1790878078898.jpg',
+    photo: '/images/dr_marcus_vance.jpg',
     isActive: true,
     nextAvailable: 'Thursday at 2:30 PM'
   },
@@ -39,7 +39,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
       { degree: 'DDS', institution: 'University of Michigan', year: '2011' },
       { degree: 'PhD in Biomaterials', institution: 'Johns Hopkins University', year: '2015' }
     ],
-    photo: '/src/assets/images/dr_elena_rostova_1790878064100.jpg',
+    photo: '/images/dr_elena_rostova.jpg',
     isActive: true,
     nextAvailable: 'Friday at 9:00 AM'
   },
@@ -53,7 +53,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
       { degree: 'DDS', institution: 'Penn Dental Medicine', year: '2012' },
       { degree: 'Fellowship in General Dentistry', institution: 'AGD Academy', year: '2015' }
     ],
-    photo: '/src/assets/images/dr_eileen_sterling_1790878307374.jpg',
+    photo: '/images/dr_eileen_sterling.jpg',
     isActive: true,
     nextAvailable: 'Tomorrow at 1:15 PM'
   }
