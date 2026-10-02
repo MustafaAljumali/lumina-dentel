@@ -53,7 +53,7 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
       const updated: Consultation = {
         ...selectedCsl,
         status: newStatus,
-        doctorNotes: doctorNotes.trim() || 'Reviewed by clinical specialist.',
+        doctorNotes: doctorNotes.trim() || 'تم فحص الحالة وإعداد التقرير الطبي وخطة العلاج.',
         treatmentPlan: treatmentPlan.trim() || '',
         examiningDoctor: examiningDoctor.trim(),
         reviewedAt: new Date().toISOString(),
@@ -66,9 +66,32 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
         console.warn('Firestore consultation update notice:', err);
       }
 
+      // 2. Direct localStorage instant sync
+      try {
+        const local = localStorage.getItem('lumina_consultations');
+        let list: Consultation[] = local ? JSON.parse(local) : [];
+        const idx = list.findIndex((c) => c.id === updated.id);
+        if (idx !== -1) {
+          list[idx] = updated;
+        } else {
+          list.unshift(updated);
+        }
+        localStorage.setItem('lumina_consultations', JSON.stringify(list));
+      } catch {}
+
+      // 3. Local API sync
+      try {
+        await fetch(`/api/consultations/${updated.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated),
+        });
+      } catch {}
+
       onUpdateConsultation(updated);
       setSelectedCsl(updated);
       setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 4000);
     } catch {
       alert('Error updating consultation record.');
     } finally {

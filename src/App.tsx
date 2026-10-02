@@ -127,7 +127,16 @@ export default function App() {
   const [smileCases, setSmileCases] = useState<SmileCase[]>(INITIAL_BASE_SMILE_CASES);
   const [services] = useState<Service[]>(INITIAL_SERVICES);
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
-  const [consultations, setConsultations] = useState<Consultation[]>(INITIAL_CONSULTATIONS);
+  const [consultations, setConsultations] = useState<Consultation[]>(() => {
+    try {
+      const saved = localStorage.getItem('lumina_consultations');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_CONSULTATIONS;
+  });
   const [patients] = useState<Patient[]>(INITIAL_PATIENTS);
 
   // Real-time Firestore sync with resilient merging
@@ -179,6 +188,9 @@ export default function App() {
         const loaded: Consultation[] = [];
         snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Consultation));
         setConsultations(loaded);
+        try {
+          localStorage.setItem('lumina_consultations', JSON.stringify(loaded));
+        } catch {}
       }
     }, () => {});
 
@@ -1155,7 +1167,13 @@ export default function App() {
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-[#ebe9e4] max-h-[90vh] flex flex-col">
             <VirtualAssessment
               onConsultationSubmitted={(csl) => {
-                setConsultations((prev) => [csl, ...prev]);
+                setConsultations((prev) => {
+                  const updated = [csl, ...prev];
+                  try {
+                    localStorage.setItem('lumina_consultations', JSON.stringify(updated));
+                  } catch {}
+                  return updated;
+                });
                 setDoc(doc(db, 'consultations', csl.id), csl).catch((e) => console.log('Local consultation saved:', e));
               }}
               onNavigateToBooking={() => {
@@ -1234,8 +1252,19 @@ export default function App() {
             setDoc(doc(db, 'appointments', id), { status }, { merge: true }).catch(() => {});
           }}
           onUpdateConsultation={(csl) => {
-            setConsultations((prev) => prev.map((c) => (c.id === csl.id ? csl : c)));
+            setConsultations((prev) => {
+              const updated = prev.map((c) => (c.id === csl.id ? csl : c));
+              try {
+                localStorage.setItem('lumina_consultations', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
             setDoc(doc(db, 'consultations', csl.id), csl, { merge: true }).catch(() => {});
+            fetch(`/api/consultations/${csl.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(csl),
+            }).catch(() => {});
           }}
           onAddDoctor={handleAddDoctor}
           onDeleteDoctor={handleDeleteDoctor}

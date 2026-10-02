@@ -72,8 +72,26 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
     setIsVerifying(true);
 
     setTimeout(() => {
+      // Gather freshest list from both props and localStorage
+      let list = [...consultations];
+      try {
+        const local = localStorage.getItem('lumina_consultations');
+        if (local) {
+          const parsed: Consultation[] = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const map = new Map<string, Consultation>();
+            list.forEach((c) => map.set(c.id, c));
+            parsed.forEach((c) => {
+              const existing = map.get(c.id);
+              map.set(c.id, existing ? { ...existing, ...c } : c);
+            });
+            list = Array.from(map.values());
+          }
+        }
+      } catch {}
+
       // Find matching consultation by BOTH phone AND name
-      const match = consultations.find((c) => {
+      const match = list.find((c) => {
         const cPhone = normalizePhone(c.phone);
         const cName = normalizeText(c.patientName);
 
@@ -83,7 +101,8 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
         const nameParts = nameQuery.split(/\s+/).filter(Boolean);
         const nameMatches =
           cName.includes(nameQuery) ||
-          nameParts.some((part) => part.length >= 3 && cName.includes(part));
+          nameQuery.includes(cName) ||
+          nameParts.some((part) => part.length >= 2 && cName.includes(part));
 
         return phoneMatches && nameMatches;
       });
@@ -99,7 +118,7 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
             : 'No matching medical record was found for this name and phone number. Please verify your details.'
         );
       }
-    }, 450);
+    }, 350);
   };
 
   const handlePrint = () => {
@@ -110,6 +129,16 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
     setUnlockedConsultation(null);
     setSearchError(null);
   };
+
+  const isCaseReviewed = Boolean(
+    unlockedConsultation && (
+      unlockedConsultation.status === 'RESPONDED' ||
+      unlockedConsultation.status === 'REVIEWED' ||
+      (unlockedConsultation.doctorNotes && unlockedConsultation.doctorNotes.trim().length > 0) ||
+      (unlockedConsultation.treatmentPlan && unlockedConsultation.treatmentPlan.trim().length > 0) ||
+      (unlockedConsultation.adminNotes && unlockedConsultation.adminNotes.trim().length > 0)
+    )
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
@@ -256,7 +285,7 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
 
                   {/* Status Badge */}
                   <div>
-                    {unlockedConsultation.status === 'NEW' ? (
+                    {!isCaseReviewed ? (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold">
                         <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
                         <span>{isRtl ? 'قيد دراسة وفحص الطبيب ⏳' : 'Under Doctor Clinical Review ⏳'}</span>
@@ -328,7 +357,7 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
                 </div>
 
                 {/* DOCTOR CLINICAL REPORT SECTION */}
-                {unlockedConsultation.status === 'NEW' ? (
+                {!isCaseReviewed ? (
                   <div className="p-5 rounded-xl bg-amber-50/60 border border-amber-200/80 text-center space-y-2">
                     <Stethoscope className="w-6 h-6 text-amber-700 mx-auto" />
                     <h4 className="text-xs font-semibold text-amber-900">
