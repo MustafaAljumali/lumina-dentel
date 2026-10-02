@@ -71,12 +71,10 @@ export interface Consultation {
   notes?: string;
   status: ConsultationStatus;
   adminNotes?: string;
-  aiAssessment?: {
-    summary: string;
-    recommendedServices: string[];
-    urgency: 'Low' | 'Medium' | 'High' | 'Immediate';
-    advice: string;
-  };
+  doctorNotes?: string;
+  treatmentPlan?: string;
+  examiningDoctor?: string;
+  reviewedAt?: string;
   createdAt: string;
 }
 

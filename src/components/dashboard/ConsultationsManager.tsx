@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import { Consultation } from '../../types';
-import { Stethoscope, CheckCircle2, Clock, Phone, Mail, FileText, X, AlertCircle } from 'lucide-react';
+import {
+  Stethoscope,
+  CheckCircle2,
+  Phone,
+  Mail,
+  FileText,
+  X,
+  MessageSquare,
+  Send,
+  ExternalLink,
+  Copy,
+  Check,
+  Share2,
+} from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -18,14 +31,18 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
   const [selectedCsl, setSelectedCsl] = useState<Consultation | null>(null);
   const [doctorNotes, setDoctorNotes] = useState('');
   const [treatmentPlan, setTreatmentPlan] = useState('');
+  const [examiningDoctor, setExaminingDoctor] = useState('د. سارة تشن (Dr. Sarah Chen)');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [copiedNotice, setCopiedNotice] = useState(false);
 
   const handleOpenReview = (csl: Consultation) => {
     setSelectedCsl(csl);
-    setDoctorNotes(csl.adminNotes || csl.notes || '');
-    setTreatmentPlan('');
+    setDoctorNotes(csl.doctorNotes || csl.adminNotes || '');
+    setTreatmentPlan(csl.treatmentPlan || '');
+    setExaminingDoctor(csl.examiningDoctor || 'د. سارة تشن (Dr. Sarah Chen)');
     setSaveSuccess(false);
+    setCopiedNotice(false);
   };
 
   const handleSaveDoctorReview = async (newStatus: 'REVIEWED' | 'RESPONDED') => {
@@ -36,7 +53,10 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
       const updated: Consultation = {
         ...selectedCsl,
         status: newStatus,
-        adminNotes: doctorNotes.trim() || 'Reviewed by clinical specialist.',
+        doctorNotes: doctorNotes.trim() || 'Reviewed by clinical specialist.',
+        treatmentPlan: treatmentPlan.trim() || '',
+        examiningDoctor: examiningDoctor.trim(),
+        reviewedAt: new Date().toISOString(),
       };
 
       // 1. Direct Firestore update
@@ -49,12 +69,43 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
       onUpdateConsultation(updated);
       setSelectedCsl(updated);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch {
       alert('Error updating consultation record.');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Generate Notification Text for WhatsApp / SMS / Email
+  const getNotificationText = (csl: Consultation) => {
+    const docName = csl.examiningDoctor || examiningDoctor || 'الطبيب الاستشاري';
+    if (isRtl) {
+      return `مرحباً ${csl.patientName}، تحية طيبة من عيادة لومينا لطب الأسنان (LUMINA Dental Atelier).\n\nنود إعلامك بأنه تم الانتهاء من مراجعة استشارتك السريرية وتحليل صور الابتسامة واعتماد التقرير الطبي وخطة العلاج من قبل: ${docName}.\n\nيمكنك الآن الاطلاع على التقرير الطبي السريري الكامل مباشرة عبر موقعنا الرسمي من خلال النقر على "سجل الفحص الطبي" وإدخال اسمك الكريم (${csl.patientName}) ورقم هاتفك المسجل.\n\nنتمنى لك دوام الصحة والعافية!`;
+    }
+    return `Hello ${csl.patientName}, greetings from LUMINA Dental Atelier.\n\nYour clinical smile consultation and treatment plan have been officially reviewed and completed by: ${docName}.\n\nYou can now view your full clinical report on our website by clicking "Medical Consultation Tracker" and verifying your name and mobile number.\n\nWe look forward to welcoming you!`;
+  };
+
+  const handleSendWhatsApp = (csl: Consultation) => {
+    const cleanPhone = csl.phone.replace(/\D/g, '');
+    const message = encodeURIComponent(getNotificationText(csl));
+    const url = `https://wa.me/${cleanPhone}?text=${message}`;
+    window.open(url, '_blank');
+  };
+
+  const handleSendEmail = (csl: Consultation) => {
+    const subject = encodeURIComponent(
+      isRtl
+        ? `عيادة لومينا لطب الأسنان: صدور تقرير الاستشارة الطبية الخاص بك (${csl.patientName})`
+        : `LUMINA Dental Atelier: Your Clinical Consultation Report is Ready (${csl.patientName})`
+    );
+    const body = encodeURIComponent(getNotificationText(csl));
+    window.location.href = `mailto:${csl.email}?subject=${subject}&body=${body}`;
+  };
+
+  const handleCopyNotice = (csl: Consultation) => {
+    navigator.clipboard.writeText(getNotificationText(csl));
+    setCopiedNotice(true);
+    setTimeout(() => setCopiedNotice(false), 2500);
   };
 
   return (
@@ -67,16 +118,16 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
           </h2>
           <p className="text-xs text-stone-500 mt-0.5">
             {isRtl
-              ? 'مراجعة صور ابتسامات المرضى مباشرة، وكتابة تحليل الطبيب المعالج وخطة العلاج'
-              : 'Direct human clinical case reviews. Review patient smile photos and enter doctor recommendations.'}
+              ? 'مراجعة صور ابتسامات المرضى، وكتابة تقرير الطبيب وخطة العلاج، وإرسال الإشعارات عبر واتساب والإيميل'
+              : 'Review patient smile submissions, enter doctor diagnoses & treatment plans, and notify patients via WhatsApp/Email.'}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium px-3 py-1.5 bg-stone-100 text-stone-800 rounded-xl">
             {consultations.length} {isRtl ? 'حالة مسجلة' : 'Total Cases'}
           </span>
-          <span className="text-xs font-medium px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-xl">
-            {consultations.filter((c) => c.status === 'NEW').length} {isRtl ? 'حالات جديدة بانتظار الفحص' : 'Pending'}
+          <span className="text-xs font-medium px-3 py-1.5 bg-amber-50 text-amber-800 rounded-xl">
+            {consultations.filter((c) => c.status === 'NEW').length} {isRtl ? 'بانتظار الفحص' : 'Pending'}
           </span>
         </div>
       </div>
@@ -127,7 +178,7 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
                           ? isRtl ? 'حالة جديدة' : 'New Case'
                           : csl.status === 'REVIEWED'
                           ? isRtl ? 'تم فحص الطبيب' : 'Doctor Reviewed'
-                          : isRtl ? 'تم التواصل' : 'Contacted'}
+                          : isRtl ? 'معتمد ومنشور للمريض' : 'Published to Patient'}
                       </span>
                     </div>
                   </div>
@@ -148,7 +199,7 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
                   {csl.concerns && csl.concerns.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
-                        {isRtl ? 'شكوى المريض الرئيسية' : 'Reported Concerns'}
+                        {isRtl ? 'شكوى المريض' : 'Concerns'}
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {csl.concerns.map((conc, i) => (
@@ -178,7 +229,7 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
                   className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-medium transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer mt-3"
                 >
                   <Stethoscope className="w-3.5 h-3.5" />
-                  <span>{isRtl ? 'مراجعة الحالة وتحليل الطبيب' : 'Clinical Case Review'}</span>
+                  <span>{isRtl ? 'مراجعة الحالة وكتابة تقرير الطبيب' : 'Clinical Review & Diagnosis'}</span>
                 </button>
               </div>
             </div>
@@ -188,116 +239,222 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
 
       {/* Doctor Case Review Modal */}
       {selectedCsl && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl border border-stone-200">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 pb-3 border-b border-stone-100 flex items-center justify-between shrink-0 bg-[#faf9f6]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-stone-100 text-stone-900 flex items-center justify-center">
-                  <Stethoscope className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-stone-900 text-white flex items-center justify-center">
+                  <Stethoscope className="w-4 h-4 text-[#d89f78]" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-stone-900">
-                    {isRtl ? 'ملف التقييم السريري للمريض' : 'Clinical Smile Review by Doctor'}
+                    {isRtl ? 'ملف فحص الحالة السريرية للمريض' : 'Clinical Patient Review & Prescription'}
                   </h3>
-                  <p className="text-[11px] text-stone-500">
-                    ID: {selectedCsl.id}
+                  <p className="text-[11px] text-stone-500 font-mono">
+                    ID: {selectedCsl.id} • {selectedCsl.patientName}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedCsl(null)}
-                className="text-stone-400 hover:text-stone-700 text-sm font-semibold cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-stone-200 text-stone-500 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {saveSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{isRtl ? 'تم حفظ تحليل الطبيب وتحديث حالة المريض بنجاح.' : 'Doctor review saved and case status updated successfully.'}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Photo */}
-              {selectedCsl.photoUrl ? (
-                <div className="rounded-xl overflow-hidden border border-stone-200 bg-stone-900 h-56">
-                  <img
-                    src={selectedCsl.photoUrl}
-                    alt="Smile clinical view"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="h-56 rounded-xl bg-stone-100 flex items-center justify-center text-stone-400 text-xs">
-                  {isRtl ? 'لم يرفق المريض صورة' : 'No photo uploaded'}
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 overscroll-contain">
+              {saveSuccess && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      {isRtl
+                        ? 'تم اعتماد ونشر التقرير بنجاح! أصبح متاحاً الآن للمريض في "سجل الفحص الطبي" على الموقع.'
+                        : 'Diagnosis report successfully published to patient portal!'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800">
+                    {isRtl
+                      ? 'يمكنك الآن إرسال إشعار فوري للمريض عبر الواتساب أو الإيميل بنقرة زر واحدة أدناه:'
+                      : 'You can now notify the patient instantly via WhatsApp or Email below:'}
+                  </p>
                 </div>
               )}
 
-              {/* Patient Info */}
-              <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200 text-xs">
-                <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-semibold block">{isRtl ? 'اسم المريض' : 'Patient Name'}</span>
-                  <span className="font-semibold text-stone-900 text-sm">{selectedCsl.patientName}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                  <a href={`mailto:${selectedCsl.email}`} className="text-[#b15f2c] hover:underline font-mono">
-                    {selectedCsl.email}
-                  </a>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                  <a href={`tel:${selectedCsl.phone}`} className="text-stone-800 font-mono font-medium hover:underline">
-                    {selectedCsl.phone}
-                  </a>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-semibold block mb-1">
-                    {isRtl ? 'الشكاوى المحددة' : 'Reported Concerns'}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedCsl.concerns?.map((c, i) => (
-                      <span key={i} className="bg-white border border-stone-200 px-2 py-0.5 rounded text-[11px] font-medium text-stone-700">
-                        {c}
-                      </span>
-                    ))}
+              {/* Photo & Patient Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {selectedCsl.photoUrl ? (
+                  <div className="rounded-2xl overflow-hidden border border-stone-200 bg-stone-900 h-52">
+                    <img
+                      src={selectedCsl.photoUrl}
+                      alt="Smile clinical view"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                </div>
-
-                {selectedCsl.notes && (
-                  <div>
-                    <span className="text-[10px] text-stone-400 uppercase font-semibold block">{isRtl ? 'ملاحظات المريض' : 'Patient Notes'}</span>
-                    <p className="text-stone-700 mt-0.5 bg-white p-2 rounded border border-stone-200">
-                      {selectedCsl.notes}
-                    </p>
+                ) : (
+                  <div className="h-52 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-400 text-xs">
+                    {isRtl ? 'لم يرفق المريض صورة' : 'No photo uploaded'}
                   </div>
                 )}
+
+                <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs">
+                  <div>
+                    <span className="text-[10px] text-stone-400 uppercase font-semibold block">
+                      {isRtl ? 'اسم المريض' : 'Patient Name'}
+                    </span>
+                    <span className="font-semibold text-stone-900 text-sm">
+                      {selectedCsl.patientName}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                    <span className="text-stone-700 font-mono">{selectedCsl.email}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                    <span className="text-stone-900 font-mono font-medium">{selectedCsl.phone}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-stone-400 uppercase font-semibold block mb-1">
+                      {isRtl ? 'شكوى المريض المحددة' : 'Reported Concerns'}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedCsl.concerns?.map((c, i) => (
+                        <span
+                          key={i}
+                          className="bg-white border border-stone-200 px-2 py-0.5 rounded text-[11px] font-medium text-stone-700"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selectedCsl.notes && (
+                    <div>
+                      <span className="text-[10px] text-stone-400 uppercase font-semibold block">
+                        {isRtl ? 'ملاحظات المريض' : 'Patient Notes'}
+                      </span>
+                      <p className="text-stone-700 mt-0.5 bg-white p-2 rounded border border-stone-200 text-[11px]">
+                        {selectedCsl.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Doctor Form Inputs */}
+              <div className="space-y-4 pt-3 border-t border-stone-100">
+                {/* Examining Doctor Name */}
+                <div>
+                  <label className="block text-xs font-semibold text-stone-900 mb-1">
+                    {isRtl ? 'اسم الطبيب الاستشاري المعالج' : 'Examining Specialist Doctor Name *'}
+                  </label>
+                  <input
+                    type="text"
+                    value={examiningDoctor}
+                    onChange={(e) => setExaminingDoctor(e.target.value)}
+                    placeholder={isRtl ? 'مثال: د. سارة تشن' : 'e.g. Dr. Sarah Chen, DDS'}
+                    className="w-full px-3 py-2.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900"
+                  />
+                </div>
+
+                {/* Doctor Diagnosis */}
+                <div>
+                  <label className="block text-xs font-semibold text-stone-900 mb-1">
+                    {isRtl ? 'التحليل والتشخيص الطبي السريري للحالة' : 'Clinical Diagnosis & Case Analysis *'}
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={doctorNotes}
+                    onChange={(e) => setDoctorNotes(e.target.value)}
+                    placeholder={
+                      isRtl
+                        ? 'اكتب تشخيصك الطبي للحالة، وتقييم شكل ولون واصطفاف الأسنان، وإمكانية المعالجة...'
+                        : 'Enter your clinical diagnosis and assessment of tooth alignment, color, enamel...'
+                    }
+                    className="w-full p-3 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 resize-none"
+                  />
+                </div>
+
+                {/* Doctor Treatment Plan */}
+                <div>
+                  <label className="block text-xs font-semibold text-stone-900 mb-1">
+                    {isRtl ? 'خطة العلاج والإجراءات الموصى بها للمريض' : 'Proposed Treatment Plan & Procedures'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={treatmentPlan}
+                    onChange={(e) => setTreatmentPlan(e.target.value)}
+                    placeholder={
+                      isRtl
+                        ? 'مثال: نوصي بتركيب 8 عدسات فينير إيماكس، مع جلسة تبييض ليزر زووم للفك السفلي، أو تقويم شفاف إنفزلاين...'
+                        : 'e.g. Recommend 8-unit minimal prep veneers, paired with Zoom laser whitening...'
+                    }
+                    className="w-full p-3 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* PATIENT NOTIFICATION SHORTCUTS (WHATSAPP & EMAIL) */}
+              <div className="p-4 rounded-2xl bg-[#faf9f6] border border-stone-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-[#b15f2c]" />
+                    <span className="text-xs font-semibold text-stone-900">
+                      {isRtl ? 'قنوات إشعار المريض الفورية' : 'Instant Patient Notification Channels'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-stone-500 font-mono">
+                    {selectedCsl.phone}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  {/* WhatsApp button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendWhatsApp(selectedCsl)}
+                    className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>{isRtl ? 'إرسال عبر واتساب' : 'WhatsApp Notice'}</span>
+                  </button>
+
+                  {/* Email button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendEmail(selectedCsl)}
+                    className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>{isRtl ? 'إرسال عبر الإيميل' : 'Email Notice'}</span>
+                  </button>
+
+                  {/* Copy message button */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopyNotice(selectedCsl)}
+                    className="py-2.5 px-3 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {copiedNotice ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedNotice ? (isRtl ? 'تم النسخ!' : 'Copied!') : (isRtl ? 'نسخ نص الإشعار' : 'Copy Text')}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Doctor's Clinical Opinion Input */}
-            <div className="space-y-2 pt-2 border-t border-stone-100">
-              <label className="block text-xs font-semibold text-stone-900">
-                {isRtl ? 'تحليل الطبيب المعالج وخطة العلاج المقترحة' : 'Treating Doctor\'s Clinical Diagnosis & Proposed Plan'}
-              </label>
-              <textarea
-                rows={3}
-                value={doctorNotes}
-                onChange={(e) => setDoctorNotes(e.target.value)}
-                placeholder={isRtl ? 'اكتب تشخيصك السريري، ونوع الإجراء المقترح (مثل: فينير 8 عدسات إيماكس، أو جلسة تبييض زووم، أو تقويم شفاف)...' : 'Enter your clinical diagnosis and recommended procedures (e.g. 8-unit minimal prep veneers, Invisalign aligners, or Zoom laser whitening)...'}
-                className="w-full p-3 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 resize-none"
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-stone-100">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-500">{isRtl ? 'الحالة الحالية:' : 'Status:'}</span>
-                <span className="font-semibold text-xs text-stone-900 uppercase">{selectedCsl.status}</span>
+            {/* Modal Footer / Save Buttons */}
+            <div className="p-4 sm:p-5 border-t border-stone-100 bg-[#faf9f6] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="text-xs text-stone-500">
+                {isRtl ? 'الحالة الحالية:' : 'Status:'}{' '}
+                <span className="font-semibold text-stone-900 uppercase">{selectedCsl.status}</span>
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -305,18 +462,18 @@ export const ConsultationsManager: React.FC<ConsultationsManagerProps> = ({
                   type="button"
                   onClick={() => handleSaveDoctorReview('REVIEWED')}
                   disabled={isSaving}
-                  className="flex-1 sm:flex-none px-4 py-2 text-xs font-medium bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-none px-4 py-2.5 text-xs font-medium bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl transition-colors cursor-pointer"
                 >
-                  {isRtl ? 'حفظ الفحص (تم فحص الطبيب)' : 'Save as Doctor Reviewed'}
+                  {isRtl ? 'حفظ كمسودة فحص' : 'Save Draft'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSaveDoctorReview('RESPONDED')}
                   disabled={isSaving}
-                  className="flex-1 sm:flex-none px-4 py-2 text-xs font-medium bg-stone-900 hover:bg-black text-white rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-black text-white rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{isRtl ? 'تم التواصل مع المريض' : 'Mark as Contacted'}</span>
+                  <Send className="w-3.5 h-3.5 text-[#d89f78]" />
+                  <span>{isRtl ? 'اعتماد التقرير ونشره في سجل المريض' : 'Approve & Publish to Patient'}</span>
                 </button>
               </div>
             </div>

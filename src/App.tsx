@@ -15,6 +15,7 @@ import { CostEstimator } from './components/services/CostEstimator';
 import { PatientTestimonials } from './components/home/PatientTestimonials';
 import { WhyChooseUs } from './components/home/WhyChooseUs';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
+import { PatientReportPortal } from './components/consultation/PatientReportPortal';
 import { db } from './lib/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import {
@@ -26,6 +27,7 @@ import {
   Check,
   Globe,
   Lock,
+  FileCheck2,
 } from 'lucide-react';
 
 // High-performance responsive hero smile image (fast loading on mobile and desktop)
@@ -118,6 +120,7 @@ export default function App() {
   const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
   const [staffPortalOpen, setStaffPortalOpen] = useState(false);
+  const [patientPortalOpen, setPatientPortalOpen] = useState(false);
 
   // Dynamic Data (synced with Firebase Firestore)
   const [doctors, setDoctors] = useState<Doctor[]>(INITIAL_DOCTORS);
@@ -429,13 +432,14 @@ export default function App() {
         if (bookingModalOpen) closeBooking();
         else if (assessmentModalOpen) closeAssessment();
         else if (emergencyModalOpen) closeEmergency();
+        else if (patientPortalOpen) setPatientPortalOpen(false);
         else if (staffPortalOpen) closeStaffPortal();
         else if (navMenuOpen) setNavMenuOpen(false);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [bookingModalOpen, assessmentModalOpen, emergencyModalOpen, staffPortalOpen, navMenuOpen]);
+  }, [bookingModalOpen, assessmentModalOpen, emergencyModalOpen, patientPortalOpen, staffPortalOpen, navMenuOpen]);
 
   // Slider handlers
   const handleSliderMove = (clientX: number) => {
@@ -547,6 +551,18 @@ export default function App() {
               {t.nav.virtualAssessment}
             </button>
             <button
+              onClick={() => {
+                stopScroll();
+                setPatientPortalOpen(true);
+              }}
+              className={`flex items-center gap-1.5 transition-colors cursor-pointer border-0 outline-none ${
+                scrolled ? 'text-[#9c5828] hover:text-[#161616]' : 'text-[#f5bd98] hover:text-white'
+              }`}
+            >
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>{language === 'ar' ? 'سجل الفحص الطبي' : 'Checkup Tracker'}</span>
+            </button>
+            <button
               onClick={openEmergency}
               className={`transition-colors cursor-pointer border-0 outline-none ${
                 scrolled ? 'text-red-700 hover:text-red-800' : 'text-red-400 hover:text-red-300'
@@ -642,6 +658,16 @@ export default function App() {
             </button>
             <button onClick={() => { openAssessment(); setNavMenuOpen(false); }} className="text-left rtl:text-right text-[#9c5828] cursor-pointer">
               {t.nav.virtualAssessment}
+            </button>
+            <button
+              onClick={() => {
+                setPatientPortalOpen(true);
+                setNavMenuOpen(false);
+              }}
+              className="text-left rtl:text-right text-stone-900 font-normal flex items-center gap-2.5 cursor-pointer border-0 outline-none"
+            >
+              <FileCheck2 className="w-5 h-5 text-[#9c5828]" />
+              <span>{language === 'ar' ? 'سجل الفحص الطبي ومتابعة الاستشارة' : 'Medical Consultation Tracker'}</span>
             </button>
             <button onClick={() => { openEmergency(); setNavMenuOpen(false); }} className="text-left rtl:text-right text-red-700 cursor-pointer">
               {t.nav.emergency}
@@ -1177,6 +1203,21 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Patient Report & Consultation Tracker Portal */}
+      <PatientReportPortal
+        consultations={consultations}
+        isOpen={patientPortalOpen}
+        onClose={() => {
+          setPatientPortalOpen(false);
+          startScroll();
+        }}
+        onBookAppointment={(doctorId, serviceId) => {
+          setPatientPortalOpen(false);
+          openBooking(serviceId, doctorId);
+        }}
+        isRtl={language === 'ar'}
+      />
 
       {/* Staff Portal / Admin Dashboard */}
       {staffPortalOpen && (

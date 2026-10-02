@@ -216,15 +216,13 @@ export const INITIAL_CONSULTATIONS: Consultation[] = [
     patientName: 'Hannah Davies',
     email: 'hannah.d@example.com',
     phone: '(555) 901-2345',
-    concerns: ['Discoloration/Stains', 'Chipped or Broken Teeth'],
-    notes: 'Planning a wedding in 4 months and would love porcelain veneer consultation for my front smile teeth.',
-    status: 'REVIEWED',
-    aiAssessment: {
-      summary: 'Candidate presents moderate incisal chipping on upper central incisors and mild enamel chromogenic staining. Excellent candidate for minimal-prep porcelain veneers or laser whitening.',
-      recommendedServices: ['Handcrafted Feldspathic Porcelain Veneers', 'Laser Teeth Whitening (Zoom Ultimate)'],
-      urgency: 'Medium',
-      advice: 'Schedule a 3D digital smile simulation with Dr. Sarah Chen to review mock-up before final fabrication.'
-    },
+    concerns: ['تصبغات واصفرار المينا', 'تآكل أو كسور في أطراف الأسنان'],
+    notes: 'أستعد لحفل زفافي خلال 4 أشهر وأود معرفة إمكانية تركيب عدسات فينير لأسناني الأمامية للحصول على ابتسامة طبيعية متناسقة.',
+    status: 'RESPONDED',
+    doctorNotes: 'بعد الفحص السريري الدقيق لصور الابتسامة، تبين وجود تآكل خفيف في الحواف القاطعة مع تصبغات مينا سطحية. الحالة ممتازة جداً لإجراء فينير خزفي مجهري محافظ على المينا الطبيعية بنسبة 100%.',
+    treatmentPlan: 'نوصي بتركيب 6 عدسات فينير خزفية ألمانية إيماكس (E-max) للأسنان العلوية الأمامية مع جلسة تبييض ليزر زووم للفك السفلي.',
+    examiningDoctor: 'د. سارة تشن (Dr. Sarah Chen)',
+    reviewedAt: '2026-08-12T14:30:00Z',
     createdAt: '2026-08-12T13:45:00Z'
   }
 ];

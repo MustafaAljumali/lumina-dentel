@@ -269,6 +269,13 @@ export const VirtualAssessment: React.FC<VirtualAssessmentProps> = ({
             <p className="text-xs text-[#5a5854] max-w-sm mx-auto leading-relaxed">
               {content?.submittedDesc || 'Our clinical specialists will personally review your smile case and contact you directly with tailored treatment recommendations.'}
             </p>
+            <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 max-w-md mx-auto">
+              <span>
+                {content?.close
+                  ? '💡 يمكنك في أي وقت متابعة حالة طلبك وقراءة تقرير الطبيب المعتمد بالنقر على "سجل الفحص الطبي" بأعلى الموقع باستخدام اسمك ورقم هاتفك.'
+                  : '💡 You can check your doctor diagnosis and report at any time by clicking "Checkup Tracker" at the top and entering your registered name & phone.'}
+              </span>
+            </div>
             <div className="pt-4 flex justify-center gap-3">
               <button
                 onClick={onNavigateToBooking}
