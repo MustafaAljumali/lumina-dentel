@@ -37,24 +37,26 @@
   outline-offset: 2px;
 }
 
-/* Custom visible & smooth scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Hide scrollbars across the entire application while preserving smooth mouse wheel scrolling */
+html,
+body,
+#root,
+div,
+main,
+aside,
+section,
+textarea,
+pre,
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
 }
 
-::-webkit-scrollbar-track {
-  background: #f1eee7;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #bab5aa;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #9c5828;
+*::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

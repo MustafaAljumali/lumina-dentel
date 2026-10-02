@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Appointment,
   Patient,
@@ -88,6 +88,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'overview' | 'appointments' | 'consultations' | 'doctors' | 'cases' | 'patients' | 'settings'
   >('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mainContentRef = useRef<HTMLElement>(null);
 
   // Secure Authentication Check
   const handleAuthSubmit = (e: React.FormEvent) => {
@@ -236,9 +237,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#faf9f6] flex text-stone-900 font-sans overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 bg-[#faf9f6] flex text-stone-900 font-sans overflow-hidden"
+      data-lenis-prevent="true"
+    >
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-[#161616] text-white border-r border-stone-800 justify-between p-5 shrink-0">
+      <aside
+        className="hidden lg:flex flex-col w-64 bg-[#161616] text-white border-r border-stone-800 justify-between p-5 shrink-0 overflow-y-auto"
+        data-lenis-prevent="true"
+      >
         <div className="space-y-6">
           {/* Logo & Close to Live Site */}
           <div className="flex items-center justify-between pb-4 border-b border-stone-800">
@@ -310,7 +317,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#faf9f6]">
         {/* Header Bar */}
-        <header className="bg-white border-b border-stone-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30">
+        <header
+          className="bg-white border-b border-stone-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30"
+          onWheel={(e) => {
+            if (mainContentRef.current) {
+              mainContentRef.current.scrollTop += e.deltaY;
+            }
+          }}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -388,7 +402,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* Main Body */}
-        <main className="p-4 sm:p-8 flex-1 overflow-y-auto">
+        <main
+          ref={mainContentRef}
+          className="p-4 sm:p-8 flex-1 overflow-y-auto scroll-smooth overscroll-contain"
+          data-lenis-prevent="true"
+          onWheel={(e) => {
+            e.stopPropagation();
+          }}
+        >
           {activeTab === 'overview' && (
             <DashboardOverview
               stats={stats}
