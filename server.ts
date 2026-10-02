@@ -137,7 +137,8 @@ async function startServer() {
   });
 
   app.post('/api/appointments', (req, res) => {
-    const { patientData, doctorId, serviceId, date, timeSlot, notes } = req.body;
+    const patientData = req.body.patientData || req.body.patient;
+    const { doctorId, serviceId, date, timeSlot, notes } = req.body;
 
     // Create or find patient
     let patient = patients.find((p) => p.email === patientData?.email);

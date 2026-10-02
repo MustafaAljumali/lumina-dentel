@@ -170,10 +170,20 @@ export default function App() {
       }
     }, () => {});
 
+    // 4. Consultations realtime sync
+    const unsubCsls = onSnapshot(collection(db, 'consultations'), (snapshot) => {
+      if (!snapshot.empty) {
+        const loaded: Consultation[] = [];
+        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Consultation));
+        setConsultations(loaded);
+      }
+    }, () => {});
+
     return () => {
       unsubDocs();
       unsubCases();
       unsubAppts();
+      unsubCsls();
     };
   }, []);
 
@@ -1173,6 +1183,7 @@ export default function App() {
         <AdminDashboard
           stats={DEFAULT_CLINIC_STATS}
           appointments={appointments}
+          consultations={consultations}
           patients={patients}
           doctors={doctors}
           cases={smileCases}
@@ -1180,6 +1191,10 @@ export default function App() {
           onUpdateAppointmentStatus={(id, status) => {
             setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
             setDoc(doc(db, 'appointments', id), { status }, { merge: true }).catch(() => {});
+          }}
+          onUpdateConsultation={(csl) => {
+            setConsultations((prev) => prev.map((c) => (c.id === csl.id ? csl : c)));
+            setDoc(doc(db, 'consultations', csl.id), csl, { merge: true }).catch(() => {});
           }}
           onAddDoctor={handleAddDoctor}
           onDeleteDoctor={handleDeleteDoctor}

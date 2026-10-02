@@ -25,6 +25,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  FileText,
 } from 'lucide-react';
 import { DashboardOverview } from './DashboardOverview';
 import { AppointmentsManager } from './AppointmentsManager';
@@ -32,15 +33,19 @@ import { PatientsManager } from './PatientsManager';
 import { SettingsManager } from './SettingsManager';
 import { DoctorsManager } from './DoctorsManager';
 import { CasesManager } from './CasesManager';
+import { ConsultationsManager } from './ConsultationsManager';
+import { Consultation } from '../../types';
 
 interface AdminDashboardProps {
   stats: ClinicStats;
   appointments: Appointment[];
+  consultations: Consultation[];
   patients: Patient[];
   doctors: Doctor[];
   cases: SmileCase[];
   services: Service[];
   onUpdateAppointmentStatus: (id: string, status: AppointmentStatus) => void;
+  onUpdateConsultation: (csl: Consultation) => void;
   onAddDoctor: (doctor: Doctor) => Promise<void> | void;
   onDeleteDoctor: (doctorId: string) => Promise<void> | void;
   onAddCase: (newCase: SmileCase) => Promise<void> | void;
@@ -52,11 +57,13 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   stats,
   appointments,
+  consultations,
   patients,
   doctors,
   cases,
   services,
   onUpdateAppointmentStatus,
+  onUpdateConsultation,
   onAddDoctor,
   onDeleteDoctor,
   onAddCase,
@@ -74,9 +81,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authError, setAuthError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tab State (removed 'consultations' as requested)
+  // Tab State
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'appointments' | 'doctors' | 'cases' | 'patients' | 'settings'
+    'overview' | 'appointments' | 'consultations' | 'doctors' | 'cases' | 'patients' | 'settings'
   >('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -215,13 +222,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
   }
 
-  // Navigation Items (without 'consultations')
+  // Navigation Items
   const navItems = [
     { id: 'overview', label: isRtl ? 'نظرة عامة وإحصائيات' : 'Overview & Stats', icon: LayoutDashboard },
     { id: 'appointments', label: isRtl ? 'جدول الحجوزات والمواعيد' : 'Appointments', icon: Calendar },
-    { id: 'doctors', label: isRtl ? 'إدارة الأطباء ورفع الصور' : 'Doctors & Portraits', icon: Stethoscope },
+    { id: 'consultations', label: isRtl ? 'استشارات وتقييمات الطبيب' : 'Clinical Consultations', icon: Stethoscope },
+    { id: 'doctors', label: isRtl ? 'إدارة الأطباء ورفع الصور' : 'Doctors & Portraits', icon: Users },
     { id: 'cases', label: isRtl ? 'معرض حالات قبل / بعد' : 'Before & After Cases', icon: SplitSquareVertical },
-    { id: 'patients', label: isRtl ? 'ملفات المرضى' : 'Patients File', icon: Users },
+    { id: 'patients', label: isRtl ? 'ملفات المرضى' : 'Patients File', icon: FileText },
     { id: 'settings', label: isRtl ? 'إعدادات المنصة' : 'Clinic Settings', icon: Settings },
   ];
 
@@ -394,6 +402,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               appointments={appointments}
               doctors={doctors}
               onUpdateStatus={onUpdateAppointmentStatus}
+            />
+          )}
+
+          {activeTab === 'consultations' && (
+            <ConsultationsManager
+              consultations={consultations}
+              onUpdateConsultation={onUpdateConsultation}
+              isRtl={isRtl}
             />
           )}
 
