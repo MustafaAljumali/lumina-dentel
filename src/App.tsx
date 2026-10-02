@@ -1146,8 +1146,8 @@ export default function App() {
 
       {/* Booking Modal */}
       {bookingModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-[#ebe9e4] max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center overflow-y-auto" data-lenis-prevent="true">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-[#ebe9e4] max-h-[90vh] flex flex-col" data-lenis-prevent="true">
             <BookingWizard
               doctors={localizedDoctors}
               services={localizedServices}
@@ -1166,8 +1166,8 @@ export default function App() {
 
       {/* Virtual Assessment Modal */}
       {assessmentModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center overflow-y-auto">
-          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-[#ebe9e4] max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center overflow-y-auto" data-lenis-prevent="true">
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-[#ebe9e4] max-h-[90vh] flex flex-col" data-lenis-prevent="true">
             <VirtualAssessment
               onConsultationSubmitted={(csl) => {
                 setConsultations((prev) => {
@@ -1192,8 +1192,8 @@ export default function App() {
 
       {/* Emergency Modal */}
       {emergencyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-4 flex items-center justify-center">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-5 shadow-xl border border-red-200">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs p-4 flex items-center justify-center" data-lenis-prevent="true">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-5 shadow-xl border border-red-200" data-lenis-prevent="true">
             <div className="flex items-center justify-between pb-3 border-b border-[#ebe9e4]">
               <span className="font-medium text-red-700 text-sm">{t.emergency.modalTitle}</span>
               <button onClick={closeEmergency} className="text-[#5a5854] hover:text-[#161616] cursor-pointer">
@@ -1226,19 +1226,21 @@ export default function App() {
       )}
 
       {/* Patient Report & Consultation Tracker Portal */}
-      <PatientReportPortal
-        consultations={consultations}
-        isOpen={patientPortalOpen}
-        onClose={() => {
-          setPatientPortalOpen(false);
-          startScroll();
-        }}
-        onBookAppointment={(doctorId, serviceId) => {
-          setPatientPortalOpen(false);
-          openBooking(serviceId, doctorId);
-        }}
-        isRtl={language === 'ar'}
-      />
+      {patientPortalOpen && (
+        <PatientReportPortal
+          consultations={consultations}
+          isOpen={patientPortalOpen}
+          onClose={() => {
+            setPatientPortalOpen(false);
+            startScroll();
+          }}
+          onBookAppointment={(doctorId, serviceId) => {
+            setPatientPortalOpen(false);
+            openBooking(serviceId, doctorId);
+          }}
+          isRtl={language === 'ar'}
+        />
+      )}
 
       {/* Staff Portal / Admin Dashboard */}
       {staffPortalOpen && (

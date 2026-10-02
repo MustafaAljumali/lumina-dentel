@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Consultation } from '../../types';
 import {
   ShieldCheck,
@@ -38,6 +38,19 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [unlockedConsultation, setUnlockedConsultation] = useState<Consultation | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || !isOpen) return;
+
+    const onWheelNative = (e: WheelEvent) => {
+      e.stopPropagation();
+    };
+
+    el.addEventListener('wheel', onWheelNative, { passive: true });
+    return () => el.removeEventListener('wheel', onWheelNative);
+  }, [isOpen, unlockedConsultation]);
 
   if (!isOpen) return null;
 
@@ -141,10 +154,30 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200"
+      data-lenis-prevent="true"
+    >
+      <div
+        className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden"
+        data-lenis-prevent="true"
+        onWheel={(e) => {
+          e.stopPropagation();
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop += e.deltaY;
+          }
+        }}
+      >
         {/* Header */}
-        <div className="p-5 sm:p-6 pb-4 border-b border-stone-100 flex items-center justify-between shrink-0 bg-[#faf9f6]">
+        <div
+          className="p-5 sm:p-6 pb-4 border-b border-stone-100 flex items-center justify-between shrink-0 bg-[#faf9f6]"
+          onWheel={(e) => {
+            e.stopPropagation();
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop += e.deltaY;
+            }
+          }}
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-[#d89f78]" />
@@ -168,7 +201,19 @@ export const PatientReportPortal: React.FC<PatientReportPortalProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-7 overscroll-contain">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-5 sm:p-7 overscroll-contain focus:outline-none"
+          data-lenis-prevent="true"
+          tabIndex={0}
+          onWheel={(e) => {
+            e.stopPropagation();
+          }}
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          }}
+        >
           {!unlockedConsultation ? (
             /* Secure Access Gate (Name + Phone) */
             <div className="max-w-md mx-auto space-y-6 py-2">
