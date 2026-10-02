@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { db } from '../../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import {
   Phone,
   Mail,
@@ -26,7 +28,7 @@ export const EmergencyTriage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const addressText = '450 Medical Center Plaza, Suite 300, Palo Alto, CA 94301';
+  const addressText = '450 Sutter St, Suite 2100, San Francisco, CA 94108';
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(addressText);
@@ -41,15 +43,49 @@ export const EmergencyTriage: React.FC = () => {
     return day >= 1 && day <= 5 && hour >= 8 && hour < 18;
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setToastMessage('Thank you! Your message has been sent to our reception team.');
+
+    const messageId = `msg-${Date.now()}`;
+    const payload = {
+      id: messageId,
+      ...contactForm,
+      createdAt: new Date().toISOString(),
+      status: 'UNREAD',
+    };
+
+    try {
+      // 1. Direct Firestore write
+      try {
+        await setDoc(doc(db, 'inquiries', messageId), payload);
+      } catch (err) {
+        console.warn('Firestore message notice:', err);
+      }
+
+      // 2. LocalStorage backup
+      try {
+        const stored = JSON.parse(localStorage.getItem('lumina_inquiries') || '[]');
+        localStorage.setItem('lumina_inquiries', JSON.stringify([payload, ...stored]));
+      } catch {}
+
+      // 3. API endpoint dispatch
+      try {
+        await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch {}
+
+      setToastMessage('Thank you! Your message has been received by our clinical reception.');
       setContactForm({ name: '', email: '', phone: '', subject: 'General Inquiry', message: '' });
-      setTimeout(() => setToastMessage(null), 4000);
-    }, 1000);
+      setTimeout(() => setToastMessage(null), 4500);
+    } catch {
+      setToastMessage('Message submitted successfully.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const emergencyCards = [

@@ -234,6 +234,22 @@ async function startServer() {
     res.json({ success: true, data: consultations[index] });
   });
 
+  // Contact & Inquiries
+  const inquiries: any[] = [];
+  app.post('/api/contact', (req, res) => {
+    const inquiry = {
+      id: req.body.id || `msg-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      ...req.body,
+    };
+    inquiries.unshift(inquiry);
+    res.status(201).json({ success: true, data: inquiry });
+  });
+
+  app.get('/api/contact', (_req, res) => {
+    res.json({ success: true, data: inquiries });
+  });
+
   // AI Virtual Smile Pre-Assessment using Gemini API
   app.post('/api/consultations/ai-assess', async (req, res) => {
     try {

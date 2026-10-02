@@ -875,7 +875,7 @@ export default function App() {
                 {/* After Image */}
                 <img
                   src={currentCase.afterImg}
-                  alt="After"
+                  alt={`${currentCase.title} - ${language === 'ar' ? 'نتيجة الابتسامة بعد العلاج النهائي' : 'Clinical smile aesthetic result after treatment'}`}
                   className="absolute inset-0 w-full h-full object-cover"
                   loading="eager"
                   decoding="async"
@@ -892,7 +892,7 @@ export default function App() {
                 >
                   <img
                     src={currentCase.beforeImg}
-                    alt="Before"
+                    alt={`${currentCase.title} - ${language === 'ar' ? 'حالة وشكل الأسنان قبل بدء العلاج' : 'Initial dental presentation prior to treatment'}`}
                     className="absolute inset-y-0 left-0 h-full max-w-none w-full object-cover"
                     style={{ width: sliderRef.current?.getBoundingClientRect().width || '100%' }}
                     loading="eager"
@@ -937,9 +937,11 @@ export default function App() {
               <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-white border border-[#ebe9e4] shadow-xs">
                 <img
                   src={currentTreatingDoctor.photo}
-                  alt={currentTreatingDoctor.name}
+                  alt={`${currentTreatingDoctor.name} - ${currentTreatingDoctor.specialty}`}
                   className="w-12 h-12 rounded-full object-cover shrink-0 border border-[#ebe9e4]"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="text-xs space-y-0.5">
                   <span className="text-[#76736d] block text-[11px]">{t.gallery.specialistLabel}</span>
@@ -999,9 +1001,10 @@ export default function App() {
                 <div className="aspect-[4/5] rounded-xl overflow-hidden bg-slate-100 border border-[#ebe9e4]">
                   <img
                     src={doc.photo}
-                    alt={doc.name}
+                    alt={`${doc.name} - ${doc.specialty}`}
                     className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
                     loading="lazy"
+                    decoding="async"
                   />
                 </div>
 
