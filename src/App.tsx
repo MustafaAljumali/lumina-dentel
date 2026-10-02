@@ -182,11 +182,29 @@ export default function App() {
       }
     }, () => {});
 
-    // 4. Consultations realtime sync
+    // 4. Consultations realtime sync with 45-day auto purge
     const unsubCsls = onSnapshot(collection(db, 'consultations'), (snapshot) => {
       if (!snapshot.empty) {
+        const deleted: string[] = JSON.parse(localStorage.getItem('lumina_deleted_consultations') || '[]');
         const loaded: Consultation[] = [];
-        snapshot.forEach((docSnap) => loaded.push(docSnap.data() as Consultation));
+        const FORTY_FIVE_DAYS_MS = 45 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+
+        snapshot.forEach((docSnap) => {
+          const c = docSnap.data() as Consultation;
+          if (deleted.includes(c.id)) return;
+
+          // Automatic 45-day purge for archived consultations
+          if (c.status === 'ARCHIVED' || c.isArchived) {
+            const time = c.archivedAt ? new Date(c.archivedAt).getTime() : new Date(c.createdAt).getTime();
+            if (!isNaN(time) && now - time > FORTY_FIVE_DAYS_MS) {
+              deleteDoc(doc(db, 'consultations', c.id)).catch(() => {});
+              return;
+            }
+          }
+          loaded.push(c);
+        });
+
         setConsultations(loaded);
         try {
           localStorage.setItem('lumina_consultations', JSON.stringify(loaded));
@@ -257,6 +275,28 @@ export default function App() {
     } catch (e) {
       console.error('Firestore delete case error:', e);
     }
+  };
+
+  const handleDeleteConsultation = async (cslId: string) => {
+    const deleted: string[] = JSON.parse(localStorage.getItem('lumina_deleted_consultations') || '[]');
+    if (!deleted.includes(cslId)) {
+      localStorage.setItem('lumina_deleted_consultations', JSON.stringify([...deleted, cslId]));
+    }
+    setConsultations((prev) => {
+      const updated = prev.filter((c) => c.id !== cslId);
+      try {
+        localStorage.setItem('lumina_consultations', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    try {
+      await deleteDoc(doc(db, 'consultations', cslId));
+    } catch (e) {
+      console.warn('Firestore delete consultation notice:', e);
+    }
+    try {
+      await fetch(`/api/consultations/${cslId}`, { method: 'DELETE' });
+    } catch {}
   };
 
   // Selections for booking
@@ -1273,6 +1313,7 @@ export default function App() {
           }}
           onAddDoctor={handleAddDoctor}
           onDeleteDoctor={handleDeleteDoctor}
+          onDeleteConsultation={handleDeleteConsultation}
           onAddCase={handleAddCase}
           onDeleteCase={handleDeleteCase}
           onClose={closeStaffPortal}

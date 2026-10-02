@@ -46,6 +46,7 @@ interface AdminDashboardProps {
   services: Service[];
   onUpdateAppointmentStatus: (id: string, status: AppointmentStatus) => void;
   onUpdateConsultation: (csl: Consultation) => void;
+  onDeleteConsultation?: (consultationId: string) => Promise<void> | void;
   onAddDoctor: (doctor: Doctor) => Promise<void> | void;
   onDeleteDoctor: (doctorId: string) => Promise<void> | void;
   onAddCase: (newCase: SmileCase) => Promise<void> | void;
@@ -64,6 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   services,
   onUpdateAppointmentStatus,
   onUpdateConsultation,
+  onDeleteConsultation,
   onAddDoctor,
   onDeleteDoctor,
   onAddCase,
@@ -409,6 +411,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <ConsultationsManager
               consultations={consultations}
               onUpdateConsultation={onUpdateConsultation}
+              onDeleteConsultation={onDeleteConsultation}
               isRtl={isRtl}
             />
           )}

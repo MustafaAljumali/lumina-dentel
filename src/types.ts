@@ -59,7 +59,7 @@ export interface Appointment {
   service?: Service;
 }
 
-export type ConsultationStatus = 'NEW' | 'REVIEWED' | 'RESPONDED';
+export type ConsultationStatus = 'NEW' | 'REVIEWED' | 'RESPONDED' | 'ARCHIVED';
 
 export interface Consultation {
   id: string;
@@ -76,6 +76,8 @@ export interface Consultation {
   examiningDoctor?: string;
   reviewedAt?: string;
   createdAt: string;
+  isArchived?: boolean;
+  archivedAt?: string;
 }
 
 export interface TimeSlot {
